@@ -190,12 +190,19 @@ if (!await service.HasDrugsAsync())
 // Obtain the Drugs from User Input
 var drugs = await SelectDrugsAsync();
 
+if (!drugs.Any())
+{
+    Console.WriteLine("No drugs selected. Exiting...");
+    return;
+}
+
 // Get the Drug Information for the selected Drugs
 var drugFullInformationList = await GetDrugFullInformationAsync(drugs);
 
 // Use the Drugs selected to display the Drug Information
 await ShowDrugInformationAsync(drugFullInformationList);
 
+// Save all of the Drug Information to the clipboard
 await SaveToClipboardAsync(drugFullInformationList);
 
 Console.WriteLine("Press any key to exit...");
