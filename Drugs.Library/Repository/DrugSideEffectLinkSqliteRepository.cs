@@ -27,6 +27,15 @@ namespace Drugs.Library.Repository
             }
         }
 
+        public async Task<IEnumerable<DrugSideEffectLink>> GetAllAsync()
+        {
+            using (var connection = new SQLiteConnection(ConnectionString))
+            {
+                connection.Open();
+                return await connection.QueryAsync<DrugSideEffectLink>("SELECT * FROM DrugSideEffectLinks");
+            }
+        }
+
         public async Task AddAsync(DrugSideEffectLink drugSideEffectLink)
         {
             using (var connection = new SQLiteConnection(ConnectionString))
@@ -34,19 +43,6 @@ namespace Drugs.Library.Repository
                 connection.Open();
                 var sql = "INSERT INTO DrugSideEffectLinks (DrugId, SideEffectId) VALUES (@DrugId, @SideEffectId)";
                 await connection.ExecuteAsync(sql, drugSideEffectLink);
-            }
-        }
-
-        public async Task<DrugSideEffectLink?> GetSideEffectByIdAsync(int drugSideEffectLink)
-        {
-            using (var connection = new SQLiteConnection(ConnectionString))
-            {
-                connection.Open();
-                return await connection.QueryFirstOrDefaultAsync<DrugSideEffectLink?>
-                (
-                    "SELECT * FROM DrugSideEffectLinks WHERE DrugSideEffectLinkId = @DrugSideEffectLinkId", 
-                    new { DrugSideEffectLinkId = drugSideEffectLink }
-                );
             }
         }
 

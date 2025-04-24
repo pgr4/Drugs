@@ -2,8 +2,8 @@
 
 public class Drug
 {
-    public int DrugId { get; set; }
-    public string Name { get; set; }
+    public int DrugId { get; init; }
+    public string Name { get; init; }
 
     public Drug()
     {

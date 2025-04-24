@@ -7,7 +7,9 @@ namespace Drugs.Library
     (
         DrugSqliteRepository drugRepository, 
         SideEffectSqliteRepository sideEffectRepository, 
-        DrugSideEffectLinkSqliteRepository drugSideEffectLinkRepository
+        CategorySqliteRepository categoryRepository, 
+        DrugSideEffectLinkSqliteRepository drugSideEffectLinkRepository,
+        DrugCategoryLinkSqliteRepository drugCategoryLinkRepository
 )
     {
         /// <summary>
@@ -20,6 +22,26 @@ namespace Drugs.Library
             return result != null;
         }
 
+        public async Task<IEnumerable<Category>> GetAllCategoriesAsync()
+        {
+            return await categoryRepository.GetAllAsync();
+        }
+
+        public async Task<IEnumerable<DrugFullInformation>> GetAllDrugsAsync(IEnumerable<Category> categories = null)
+        {
+            if (categories == null || !categories.Any())
+            {
+                var drugs = await drugRepository.GetAllAsync();
+                return await Task.WhenAll(drugs.Select(drug => GetDrugInformationAsync(drug)));
+            }
+            else
+            {
+                var drugCategoryLinks = await Task.WhenAll(categories.Select(category => drugCategoryLinkRepository.GetDrugCategoryLinksByCategoryIdAsync(category.CategoryId)));
+                var drugs = await Task.WhenAll(drugCategoryLinks.SelectMany(t => t.Select(drugCategoryLink => drugCategoryLink.DrugId)).Distinct().Select(drugId => drugRepository.GetDrugByIdAsync(drugId)));
+                return await Task.WhenAll(drugs.Select(drug => GetDrugInformationAsync(drug)));
+            }
+        }
+
         public async Task CreateDrugAsync(Drug drug)
         {
             await drugRepository.AddAsync(drug);
@@ -30,26 +52,38 @@ namespace Drugs.Library
             await sideEffectRepository.AddAsync(sideEffect);
         }
 
+        public async Task CreateCategoryAsync(Category category)
+        {
+            await categoryRepository.AddAsync(category);
+        }
+
         public async Task CreateDrugSideEffectLinkAsync(DrugSideEffectLink drugSideEffectLink)
         {
             await drugSideEffectLinkRepository.AddAsync(drugSideEffectLink);
         }
 
-        public async Task<IEnumerable<Drug>> GetDrugsBySimilarNameAsync(string name)
+        public async Task CreateDrugCategoryLinkAsync(DrugCategoryLink drugCategoryLink)
         {
-            return await drugRepository.GetDrugsBySimilarNameAsync(name);
+            await drugCategoryLinkRepository.AddAsync(drugCategoryLink);
         }
 
-        public async Task<DrugFullInformation> GetDrugInformationAsync(Drug drug)
+        private async Task<DrugFullInformation> GetDrugInformationAsync(Drug drug)
         {
             var drugSideEffectLinks = await drugSideEffectLinkRepository.GetDrugSideEffectLinksByDrugIdAsync(drug.DrugId);
 
             var sideEffects = await Task.WhenAll(drugSideEffectLinks.Select(async drugSideEffectLink =>
             {
-            return await sideEffectRepository.GetSideEffectByIdAsync(drugSideEffectLink.SideEffectId);
+                return await sideEffectRepository.GetSideEffectByIdAsync(drugSideEffectLink.SideEffectId);
             }));
 
-            return new DrugFullInformation(drug, sideEffects);
+            var drugCategoryLinks = await drugCategoryLinkRepository.GetDrugCategoryLinksByDrugIdAsync(drug.DrugId);
+
+            var categories = await Task.WhenAll(drugCategoryLinks.Select(async drugCategoryLink =>
+            {
+                return await categoryRepository.GetCategoryByIdAsync(drugCategoryLink.CategoryId);
+            }));
+
+            return new DrugFullInformation(drug, sideEffects, categories);
         }
     }
 }

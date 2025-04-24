@@ -13,8 +13,7 @@ namespace Drugs.Library.Repository
                 var sql = @"
                     CREATE TABLE IF NOT EXISTS Drugs (
                         DrugId INTEGER PRIMARY KEY AUTOINCREMENT,
-                        Name TEXT NOT NULL,
-                        Description TEXT
+                        Name TEXT NOT NULL
                 );";
 
                 connection.Open();
@@ -32,6 +31,15 @@ namespace Drugs.Library.Repository
                 connection.Open();
                 var sql = "INSERT INTO Drugs (Name) VALUES (@Name)";
                 await connection.ExecuteAsync(sql, drug);
+            }
+        }
+
+        public async Task<IEnumerable<Drug>> GetAllAsync()
+        {
+            using (var connection = new SQLiteConnection(ConnectionString))
+            {
+                connection.Open();
+                return await connection.QueryAsync<Drug>("SELECT * FROM Drugs");
             }
         }
 
