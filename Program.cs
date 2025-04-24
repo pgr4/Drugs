@@ -168,76 +168,108 @@ async Task<DrugFullInformation?> GetUserInputDrugAsync(IEnumerable<DrugFullInfor
 
     while (true)
     {
-        // Clear the console and render the input
-        Console.Clear();
-        Console.WriteLine("Type to search for a drug (or press 'Esc' to quit):");
-        if (selectedDrugs.Any())
-        {
-            Console.Write($"Selected: ");
-            foreach (var selectedDrug in selectedDrugs)
-            {
-                DisplayDrugWithCategoryColor(selectedDrug, false, false);
-            }
-            Console.WriteLine();
-        }
-        Console.WriteLine($"Search: {input}");
+        RenderInputScreen(input, selectedDrugs);
 
-        // Fetch results based on the current input
-        var drugs = (string.IsNullOrWhiteSpace(input) ? availableDrugs : availableDrugs.Where(t => t.Like(input))).ToList();
+        var drugs = FilterDrugsByInput(input);
 
-        // Display the Categories
-        foreach (var category in availableCategories)
-        {
-            if (category.ColorCode.HasValue)
-            {
-                Console.ForegroundColor = category.ColorCode.Value;
-            }
-            Console.Write($"{category.Name}");
-            Console.ResetColor();
-            Console.Write(" ");
-        }
-        // Determine the visible range of items
-        int consoleHeight = Console.WindowHeight - (selectedDrugs.Any() ? 7 : 6);
-        int startIndex = Math.Max(0, selectedIndex - consoleHeight / 2);
-        int endIndex = Math.Min(drugs.Count, startIndex + consoleHeight);
+        RenderDrugList(drugs, selectedDrugs, selectedIndex);
 
-        // Render the visible portion of the list
-        Console.WriteLine("\nUse the arrow keys to navigate and press Enter to select:");
-        for (int i = startIndex; i < endIndex; i++)
-        {
-            DisplayDrugWithCategoryColor(drugs[i], i == selectedIndex, true);
-        }
-
-        // Read user input
         var key = Console.ReadKey(true);
 
-        if (key.Key == ConsoleKey.Escape)
+        if (HandleKeyPress(key, ref input, ref selectedIndex, drugs, out var selectedDrug))
         {
-            return null;
-        }
-        else if (key.Key == ConsoleKey.Backspace && input.Length > 0)
-        {
-            input = input.Substring(0, input.Length - 1);
-            selectedIndex = 0; // Reset selection
-        }
-        else if (key.Key == ConsoleKey.Enter && drugs.Any())
-        {
-            return drugs[selectedIndex];
-        }
-        else if (key.Key == ConsoleKey.UpArrow)
-        {
-            selectedIndex = (selectedIndex == 0) ? drugs.Count - 1 : selectedIndex - 1;
-        }
-        else if (key.Key == ConsoleKey.DownArrow)
-        {
-            selectedIndex = (selectedIndex == drugs.Count - 1) ? 0 : selectedIndex + 1;
-        }
-        else if (!char.IsControl(key.KeyChar))
-        {
-            input += key.KeyChar;
-            selectedIndex = 0; // Reset selection
+            return selectedDrug;
         }
     }
+}
+
+void RenderInputScreen(string input, IEnumerable<DrugFullInformation> selectedDrugs)
+{
+    Console.Clear();
+    Console.WriteLine("Type to search for a drug (or press 'Esc' to quit):");
+
+    if (selectedDrugs.Any())
+    {
+        Console.Write("Selected: ");
+        foreach (var selectedDrug in selectedDrugs)
+        {
+            DisplayDrugWithCategoryColor(selectedDrug, false, false);
+        }
+        Console.WriteLine();
+    }
+
+    Console.WriteLine($"Search: {input}");
+    RenderAvailableCategories();
+}
+
+void RenderAvailableCategories()
+{
+    foreach (var category in availableCategories)
+    {
+        if (category.ColorCode.HasValue)
+        {
+            Console.ForegroundColor = category.ColorCode.Value;
+        }
+        Console.Write($"{category.Name}");
+        Console.ResetColor();
+        Console.Write(" ");
+    }
+    Console.WriteLine();
+}
+
+List<DrugFullInformation> FilterDrugsByInput(string input)
+{
+    return string.IsNullOrWhiteSpace(input)
+        ? availableDrugs.ToList()
+        : availableDrugs.Where(t => t.Like(input)).ToList();
+}
+
+void RenderDrugList(List<DrugFullInformation> drugs, IEnumerable<DrugFullInformation> selectedDrugs, int selectedIndex)
+{
+    int consoleHeight = Console.WindowHeight - (selectedDrugs.Any() ? 7 : 6);
+    int startIndex = Math.Max(0, selectedIndex - consoleHeight / 2);
+    int endIndex = Math.Min(drugs.Count, startIndex + consoleHeight);
+
+    Console.WriteLine("\nUse the arrow keys to navigate and press Enter to select:");
+    for (int i = startIndex; i < endIndex; i++)
+    {
+        DisplayDrugWithCategoryColor(drugs[i], i == selectedIndex, true);
+    }
+}
+
+bool HandleKeyPress(ConsoleKeyInfo key, ref string input, ref int selectedIndex, List<DrugFullInformation> drugs, out DrugFullInformation? selectedDrug)
+{
+    selectedDrug = null;
+
+    if (key.Key == ConsoleKey.Escape)
+    {
+        return true;
+    }
+    else if (key.Key == ConsoleKey.Backspace && input.Length > 0)
+    {
+        input = input.Substring(0, input.Length - 1);
+        selectedIndex = 0; // Reset selection
+    }
+    else if (key.Key == ConsoleKey.Enter && drugs.Any())
+    {
+        selectedDrug = drugs[selectedIndex];
+        return true;
+    }
+    else if (key.Key == ConsoleKey.UpArrow)
+    {
+        selectedIndex = (selectedIndex == 0) ? drugs.Count - 1 : selectedIndex - 1;
+    }
+    else if (key.Key == ConsoleKey.DownArrow)
+    {
+        selectedIndex = (selectedIndex == drugs.Count - 1) ? 0 : selectedIndex + 1;
+    }
+    else if (!char.IsControl(key.KeyChar))
+    {
+        input += key.KeyChar;
+        selectedIndex = 0; // Reset selection
+    }
+
+    return false;
 }
 
 async Task<IEnumerable<DrugFullInformation>> GetUserInputSelectedDrugsAsync()
