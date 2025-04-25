@@ -3,6 +3,9 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Drugs.Library;
 using TextCopy;
+using System.Text;
+
+Console.OutputEncoding = Encoding.UTF8;
 
 var services = new ServiceCollection();
 ServiceExtensions.AddDrugLibrary(services);
@@ -60,7 +63,7 @@ async Task GenerateDummyDataAsync()
 
     for (int i = 1; i <= drugCount; i++)
     {
-        await service.CreateDrugAsync(new Drug(i, $"Drug{i}"));
+        await service.CreateDrugAsync(new Drug(i, $"Drug{i}", random.Next(0, 2) == 1));
     }
 
     for (int i = 1; i <= sideEffectCount; i++)
@@ -124,17 +127,22 @@ void DisplayDrugWithCategoryColor(DrugFullInformation drug, bool hovered, bool e
     {
         Console.ForegroundColor = ConsoleColor.Black;
         Console.BackgroundColor = ConsoleColor.White;
-        Console.Write(">>");
+        Console.Write("→");
         Console.ResetColor();
     }
 
     // Build the base string
-    var str = $"{(hovered ? "" : "  ")}{drug.DrugName}";
+    var str = $"{(hovered ? "" : " ")}{drug.DrugName}";
 
     // Handle categories
     if (drug.Categories.Any())
     {
+        if (drug.IsFavorite)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+        }
         Console.Write(str);
+        Console.ResetColor();
         Console.Write(" (");
 
         foreach (var category in drug.Categories)

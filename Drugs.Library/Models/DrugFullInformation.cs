@@ -8,6 +8,7 @@ public class DrugFullInformation
 
     public int DrugId { get { return _drug.DrugId; } }
     public string DrugName { get { return _drug.Name; } }
+    public bool IsFavorite { get { return _drug.IsFavorite; } }
     public IEnumerable<SideEffect> SideEffects { get { return _sideEffects; } }
     public IEnumerable<Category> Categories { get { return _categories; } }
 
